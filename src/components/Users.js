@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase";
 import "./Users.css";
@@ -12,6 +12,61 @@ function Users() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [editingUser, setEditingUser] = useState(null);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const handleDelete = async (id) => {
+  if (window.confirm("Are you sure you want to delete this user?")) {
+    try {
+      await deleteDoc(doc(db, "users", id));
+
+      setUsers(users.filter((user) => user.id !== id));
+
+      alert("User deleted successfully!");
+
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Error deleting user.");
+    }
+  }
+};
+
+
+const handleEdit = (user) => {
+  setEditingUser(user);
+  setFullName(user.fullName);
+  setEmail(user.email);
+  setPhone(user.phone);
+}; 
+
+const handleUpdate = async (e) => {
+  e.preventDefault();
+
+  try {
+    const userRef = doc(db, "users", editingUser.id);
+
+    await updateDoc(userRef, {
+      fullName: fullName,
+      email: email,
+      phone: phone
+    });
+
+    setUsers(users.map((user) =>
+      user.id === editingUser.id
+        ? { ...user, fullName, email, phone }
+        : user
+    ));
+
+    setEditingUser(null);
+    alert("User updated successfully!");
+
+  } catch (error) {
+    console.error("Error updating user:", error);
+    alert("Error updating user.");
+  }
+};
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -78,6 +133,55 @@ function Users() {
           </select>
 
         </div>
+{editingUser && (
+  <div className="edit-modal-overlay">
+    <div className="edit-form">
+
+    <h3>Update User Details</h3>
+
+    <form onSubmit={handleUpdate}>
+
+      <input
+        type="text"
+        placeholder="Full Name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        required
+      />
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+
+      <input
+        type="text"
+        placeholder="Phone"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        required
+      />
+
+      <button type="submit" className="btn btn-primary">
+        Update User
+      </button>
+
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={() => setEditingUser(null)}
+      >
+        Cancel
+      </button>
+
+    </form>
+
+  </div>
+  </div>
+)}
 
         <div className="table-wrapper">
 
@@ -89,6 +193,7 @@ function Users() {
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Gender</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -99,6 +204,21 @@ function Users() {
                   <td>{user.email}</td>
                   <td>{user.phone}</td>
                   <td>{user.gender}</td>
+                  <td>
+  <button
+    className="btn btn-primary btn-sm"
+    onClick={() => handleEdit(user)}
+  >
+    Edit
+  </button>
+
+  <button
+    className="btn btn-danger btn-sm"
+    onClick={() => handleDelete(user.id)}
+  >
+    Delete
+  </button>
+</td>
                 </tr>
               ))}
             </tbody>
