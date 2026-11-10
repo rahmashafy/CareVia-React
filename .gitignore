@@ -41,3 +41,8 @@ example
 # generated native folders
 /ios
 /android
+functions/seed-admin.cjs
+firebase-debug.log
+firestore-debug.log
+lib/
+seed-admin.cjs
